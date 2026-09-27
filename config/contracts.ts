@@ -14,6 +14,12 @@ import {
 import { getPublicKey, isConnected, signTransaction } from "@stellar/freighter-api";
 
 import { Network, isValidNetwork } from "../src/config";
+import {
+  PLACEHOLDER_CONTRACT_ADDRESS,
+  isPlaceholderContractAddress,
+  isValidContractAddress,
+  resolveContractAddress,
+} from "./contractAddress";
 
 /** Contract config for a single network */
 export interface ContractNetworkConfig {
@@ -27,22 +33,15 @@ export interface ContractNetworkConfig {
 /** Full contract configuration per network */
 export type ContractConfig = Record<Network, ContractNetworkConfig>;
 
-/** Placeholder when no contract is configured (56-char Soroban format: C + 55 base32 chars) */
-export const PLACEHOLDER_CONTRACT_ADDRESS = "C" + "A".repeat(55);
+export {
+  PLACEHOLDER_CONTRACT_ADDRESS,
+  isPlaceholderContractAddress,
+  isValidContractAddress,
+  resolveContractAddress,
+} from "./contractAddress";
 
 /** @deprecated Use PLACEHOLDER_CONTRACT_ADDRESS */
 const PLACEHOLDER_ADDRESS = PLACEHOLDER_CONTRACT_ADDRESS;
-
-/**
- * True when address is the all-A placeholder (or starts with enough A's to match legacy checks).
- * Format-valid but not a real deployed contract - must never reach wallet signing.
- */
-export function isPlaceholderContractAddress(address: string): boolean {
-  if (typeof address !== "string" || !address) return true;
-  if (address === PLACEHOLDER_CONTRACT_ADDRESS) return true;
-  // Legacy / partial placeholders used in older bridges
-  return address.startsWith("CAAAAAAA");
-}
 
 /**
  * Env var name developers must set for a given network.
@@ -88,15 +87,11 @@ const DEFAULT_CONTRACT_CONFIG: ContractConfig = {
 
 /** Build config with env overrides (env takes precedence). Legacy env vars used for both networks if set. */
 function getContractConfig(): ContractConfig {
-  const legacyContract = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
   const legacyRpc = process.env.NEXT_PUBLIC_SOROBAN_RPC_URL;
   const legacyPassphrase = process.env.NEXT_PUBLIC_SOROBAN_NETWORK_PASSPHRASE;
   return {
     mainnet: {
-      contractAddress:
-        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS_MAINNET ||
-        legacyContract ||
-        DEFAULT_CONTRACT_CONFIG.mainnet.contractAddress,
+      contractAddress: resolveContractAddress("mainnet"),
       rpcUrl:
         process.env.NEXT_PUBLIC_SOROBAN_RPC_URL_MAINNET ||
         legacyRpc ||
@@ -107,10 +102,7 @@ function getContractConfig(): ContractConfig {
         DEFAULT_CONTRACT_CONFIG.mainnet.networkPassphrase,
     },
     testnet: {
-      contractAddress:
-        process.env.NEXT_PUBLIC_CONTRACT_ADDRESS_TESTNET ||
-        legacyContract ||
-        DEFAULT_CONTRACT_CONFIG.testnet.contractAddress,
+      contractAddress: resolveContractAddress("testnet"),
       rpcUrl:
         process.env.NEXT_PUBLIC_SOROBAN_RPC_URL_TESTNET ||
         legacyRpc ||
@@ -121,17 +113,6 @@ function getContractConfig(): ContractConfig {
         DEFAULT_CONTRACT_CONFIG.testnet.networkPassphrase,
     },
   };
-}
-
-/** Soroban contract address format: C + 55 base32 chars = 56 total */
-const CONTRACT_ADDRESS_REGEX = /^C[A-Z2-7]{55}$/;
-
-/**
- * Validates Soroban contract address format (C-prefix, 56 chars, base32).
- */
-export function isValidContractAddress(address: string): boolean {
-  if (typeof address !== "string" || address.length !== 56) return false;
-  return CONTRACT_ADDRESS_REGEX.test(address);
 }
 
 /**

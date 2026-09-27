@@ -32,6 +32,7 @@ import {
   WrapPeriod,
 } from "@/app/utils/indexer";
 import { calculateAchievements } from "./achievementCalculator";
+import { ConcurrencyManager, throwIfAborted } from "./concurrencyManager";
 import { IndexerEventEmitter } from "@/app/utils/indexerEventEmitter";
 import { INDEXING_STEPS, IndexingStep } from "@/app/types/indexing";
 import {
@@ -58,41 +59,6 @@ export class HorizonError extends Error {
   ) {
     super(message);
     this.name = "HorizonError";
-  }
-}
-
-const MAX_CONCURRENT_REQUESTS = 5;
-
-interface QueueItem {
-  cursor?: string;
-  resolve: () => void;
-  reject: () => void;
-}
-
-class ConcurrencyManager {
-  private active = 0;
-  private queue: QueueItem[] = [];
-
-  async run<T>(fn: () => Promise<T>): Promise<T> {
-    while (this.active >= MAX_CONCURRENT_REQUESTS) {
-      await new Promise<void>((resolve) => {
-        this.queue.push({
-          resolve: () => resolve(),
-          reject: () => {},
-        });
-      });
-    }
-
-    this.active++;
-    try {
-      return await fn();
-    } finally {
-      this.active--;
-      const next = this.queue.shift();
-      if (next) {
-        next.resolve();
-      }
-    }
   }
 }
 
@@ -147,6 +113,9 @@ export async function runIndexingCore(
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);
 
+  // Captured once: abortIndexingRequests() clears the shared controller, so
+  // re-reading it mid-run would miss the cancellation.
+  const runSignal = getIndexingAbortSignal();
   let currentEmittedStep: IndexingStep = "initializing";
 
   const emit = (fn: () => void) => {
@@ -176,10 +145,7 @@ export async function runIndexingCore(
     let totalEstimatedTotal: number | null = null;
 
     while (hasMore) {
-      const signal = getIndexingAbortSignal();
-      if (signal?.aborted) {
-        throw new DOMException("Indexing cancelled", "AbortError");
-      }
+      throwIfAborted(runSignal);
 
       let response: unknown;
       try {
@@ -198,7 +164,7 @@ export async function runIndexingCore(
             builder.cursor(cursor);
           }
           return builder.call();
-        });
+        }, runSignal);
       } catch (error: unknown) {
         if (isAbortError(error)) {
           throw new DOMException("Indexing cancelled", "AbortError");
@@ -282,6 +248,7 @@ export async function runIndexingCore(
           };
         }),
       );
+      throwIfAborted(runSignal);
       const recordsInRange = recordsWithOps.filter((tx: TransactionRecord) => {
         return new Date(tx.created_at) >= cutoffDate;
       });
@@ -451,6 +418,9 @@ export async function runIndexingCore(
       return r;
     }, background);
 
+    // Cancellation may land between the last fetch and here; never hand a
+    // cancelled run's result to callers that would store it.
+    throwIfAborted(runSignal);
     emit(() => emitter.emitIndexingComplete(result));
     return { result, transactions: allTransactions };
   } catch (error) {

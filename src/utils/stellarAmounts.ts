@@ -9,6 +9,8 @@
  * @module stellarAmounts
  */
 
+import { fromStroops } from "./stellarAmount";
+
 /** Number of stroops in one XLM. */
 export const STROOPS_PER_XLM = 10_000_000;
 
@@ -131,7 +133,11 @@ export function formatXlm(
     Math.max(Math.floor(maxFractionDigits), 0),
     XLM_MAX_PRECISION,
   );
-  return stroopsToXlm(stroops).toFixed(clamped);
+  // Format from the exact bigint so values above Number.MAX_SAFE_INTEGER
+  // stroops never pass through a float. Extra digits are truncated, never
+  // rounded up, so a displayed amount never exceeds the real balance.
+  const [whole, fraction] = fromStroops(toStroopsBigInt(stroops)).split(".");
+  return clamped === 0 ? whole : `${whole}.${fraction.slice(0, clamped)}`;
 }
 
 /**

@@ -5,6 +5,11 @@
 import { render, screen } from "@testing-library/react";
 import { Footer } from "../Footer";
 
+jest.mock("../../store/wrapStore", () => ({
+  useWrapStore: (selector: (state: { network: string }) => unknown) =>
+    selector({ network: "testnet" }),
+}));
+
 describe("Footer", () => {
   it("renders the footer landmark element", () => {
     render(<Footer />);
@@ -142,5 +147,13 @@ describe("Footer", () => {
     const footer = screen.getByRole("contentinfo");
     expect(footer).toHaveClass("text-sm");
     expect(footer).toHaveClass("text-white/60");
+  });
+
+  it("shows the active contract address for the current network", () => {
+    render(<Footer />);
+
+    expect(screen.getByTestId("active-contract-address")).toHaveTextContent(
+      /Testnet contract:/,
+    );
   });
 });

@@ -1,7 +1,11 @@
 /**
- * Environment variable validation script for CI
- * Validates .env.example documentation and contract address formats
- * 
+ * Environment variable validation script for CI and `prebuild`.
+ * Validates .env.example documentation and the configured contract addresses.
+ *
+ * This is the single contract verification script: it resolves the active
+ * address per network in the same order as config/contractAddress.ts and
+ * fails when none is configured or a configured one is malformed.
+ *
  * Usage: node scripts/validate-env.js
  * Exit codes:
  *   0 - All validations passed
@@ -158,15 +162,14 @@ function validateContractConfig() {
   log('Contract Configuration Validation', colors.bold);
   log('='.repeat(70) + '\n', colors.bold);
 
-  const contractsConfigPath = path.join(rootDir, 'config', 'contracts.ts');
+  const contractsConfigPath = path.join(rootDir, 'config', 'contractAddress.ts');
 
-  // Check if contracts.ts exists
   if (!fs.existsSync(contractsConfigPath)) {
-    error('config/contracts.ts not found');
+    error('config/contractAddress.ts not found');
     return;
   }
 
-  success('config/contracts.ts exists');
+  success('config/contractAddress.ts exists');
 
   const content = fs.readFileSync(contractsConfigPath, 'utf8');
 
@@ -174,7 +177,7 @@ function validateContractConfig() {
   if (content.includes('isValidContractAddress')) {
     success('Contract address validation function exists');
   } else {
-    warning('No contract address validation function found in contracts.ts');
+    warning('No contract address validation function found in contractAddress.ts');
   }
 
   // Check for regex validation
@@ -194,11 +197,65 @@ function validateContractConfig() {
 
   envVarChecks.forEach((varName) => {
     if (content.includes(varName)) {
-      success(`${varName} is referenced in contracts.ts`);
+      success(`${varName} is referenced in contractAddress.ts`);
     } else {
-      warning(`${varName} is not referenced in contracts.ts`);
+      warning(`${varName} is not referenced in contractAddress.ts`);
     }
   });
+}
+
+/** Reads .env files the way Next.js does; real environment variables win. */
+function loadEnv() {
+  const fileVars = {};
+  ['.env', '.env.production', '.env.local', '.env.production.local'].forEach((file) => {
+    const envPath = path.join(rootDir, file);
+    if (!fs.existsSync(envPath)) return;
+    fs.readFileSync(envPath, 'utf8')
+      .split('\n')
+      .forEach((line) => {
+        const match = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=(.*)$/);
+        if (match) fileVars[match[1]] = match[2].trim().replace(/^["']|["']$/g, '');
+      });
+  });
+  return { ...fileVars, ...process.env };
+}
+
+function validateConfiguredContractAddresses() {
+  log('\n' + '='.repeat(70), colors.bold);
+  log('Active Contract Address Validation', colors.bold);
+  log('='.repeat(70) + '\n', colors.bold);
+
+  const env = loadEnv();
+  const legacy = env.NEXT_PUBLIC_CONTRACT_ADDRESS;
+  let configured = 0;
+
+  ['mainnet', 'testnet'].forEach((network) => {
+    const varName = `NEXT_PUBLIC_CONTRACT_ADDRESS_${network.toUpperCase()}`;
+    const source = env[varName] ? varName : legacy ? 'NEXT_PUBLIC_CONTRACT_ADDRESS' : null;
+    const address = source ? env[source].trim() : '';
+
+    if (!address) {
+      warning(`${network}: no contract address configured (set ${varName})`);
+      return;
+    }
+    if (!isValidContractAddress(address)) {
+      error(`${network}: ${source} is malformed: ${address}`);
+      info('Contract addresses must be 56 characters: C followed by 55 base32 chars (A-Z, 2-7)');
+      return;
+    }
+    if (address.startsWith('CAAAAAAA')) {
+      error(`${network}: ${source} is the placeholder address, not a deployed contract`);
+      return;
+    }
+    configured++;
+    success(`${network}: ${address} (from ${source})`);
+  });
+
+  if (configured === 0) {
+    error(
+      'No contract address configured. Set NEXT_PUBLIC_CONTRACT_ADDRESS_MAINNET and/or NEXT_PUBLIC_CONTRACT_ADDRESS_TESTNET.',
+    );
+  }
 }
 
 function validateREADME() {
@@ -252,6 +309,7 @@ function main() {
 
   validateEnvExample();
   validateContractConfig();
+  validateConfiguredContractAddresses();
   validateREADME();
 
   // Summary
