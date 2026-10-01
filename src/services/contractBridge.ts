@@ -18,7 +18,7 @@ import { buildMintWrapArgs, type MintWrapArgsInput } from '../utils/contractArgs
 import { mapContractError } from '../../app/utils/contractErrors';
 import { signWithFreighter } from '../../app/services/transactionSigner';
 import { sorobanQueue } from '../utils/sorobanRequestQueue';
-import { stroopsToXlm } from '../utils/stellarAmounts';
+import { stroopsToXlm } from '../utils/stellarAmount';
 
 export type TransactionState =
   | 'pending'

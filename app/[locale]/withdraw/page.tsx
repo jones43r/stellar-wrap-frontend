@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -20,6 +20,11 @@ export default function WithdrawPage() {
   const [status, setStatus] = useState<"idle" | "withdrawing" | "success" | "failed">("idle");
   const [error, setError] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
+
+  const amountInputRef = useRef<HTMLInputElement>(null);
+  const withdrawButtonRef = useRef<HTMLButtonElement>(null);
+  const withdrawAgainButtonRef = useRef<HTMLButtonElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
 
   const handleWithdraw = useCallback(async () => {
     setError(null);
@@ -66,6 +71,29 @@ export default function WithdrawPage() {
   }, [amount, isConnected, address, network]);
 
   const isWithdrawing = status === "withdrawing";
+
+  // Move focus to the amount input when the wallet connects so keyboard users
+  // land on the first actionable control of the flow.
+  useEffect(() => {
+    if (isConnected) {
+      amountInputRef.current?.focus();
+    }
+  }, [isConnected]);
+
+  // Move focus to the error alert when validation or submission fails so
+  // screen reader and keyboard users are notified immediately.
+  useEffect(() => {
+    if (error) {
+      errorRef.current?.focus();
+    }
+  }, [error]);
+
+  // Move focus to the "Withdraw Again" action once the withdrawal succeeds.
+  useEffect(() => {
+    if (status === "success") {
+      withdrawAgainButtonRef.current?.focus();
+    }
+  }, [status]);
 
   return (
     <main className="relative w-full min-h-screen h-screen overflow-hidden flex items-center justify-center bg-theme-background">
@@ -114,10 +142,17 @@ export default function WithdrawPage() {
                 </label>
                 <input
                   id="withdraw-amount"
+                  ref={amountInputRef}
                   type="text"
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !isWithdrawing && amount.trim()) {
+                      e.preventDefault();
+                      void handleWithdraw();
+                    }
+                  }}
                   placeholder="0.0000000"
                   className="w-full px-5 py-4 rounded-xl font-mono text-sm sm:text-base border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-offset-2 focus:ring-offset-black bg-black/50"
                   style={{
@@ -137,9 +172,11 @@ export default function WithdrawPage() {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   id="withdraw-error"
+                  ref={errorRef}
+                  tabIndex={-1}
                   role="alert"
                   aria-live="assertive"
-                  className="p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400 text-sm font-medium flex items-start gap-2"
+                  className="p-4 bg-red-500/10 border-2 border-red-500/50 rounded-xl text-red-400 text-sm font-medium flex items-start gap-2 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                 >
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>{error}</span>
@@ -163,6 +200,7 @@ export default function WithdrawPage() {
               )}
 
               <motion.button
+                ref={withdrawButtonRef}
                 onClick={handleWithdraw}
                 disabled={isWithdrawing || !amount.trim()}
                 className="w-full px-6 py-4 rounded-xl font-bold text-black bg-theme-primary hover:bg-theme-primary/90 transition-colors flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
@@ -179,6 +217,7 @@ export default function WithdrawPage() {
 
               {status === "success" && (
                 <motion.button
+                  ref={withdrawAgainButtonRef}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   onClick={() => {
@@ -186,8 +225,9 @@ export default function WithdrawPage() {
                     setAmount("");
                     setTxHash(null);
                     setError(null);
+                    amountInputRef.current?.focus();
                   }}
-                  className="w-full px-6 py-3 rounded-xl font-bold text-white/70 border border-white/10 hover:text-white hover:border-white/20 transition-colors text-sm"
+                  className="w-full px-6 py-3 rounded-xl font-bold text-white/70 border border-white/10 hover:text-white hover:border-white/20 transition-colors text-sm focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-offset-2 focus:ring-offset-black"
                 >
                   Withdraw Again
                 </motion.button>
@@ -198,8 +238,8 @@ export default function WithdrawPage() {
 
         <motion.button
           onClick={() => router.back()}
-          className="mt-6 flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-offset-2 focus:ring-offset-black rounded-lg px-2 py-1"
-          whileHover={{ x: -4 }}
+          className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-white/60 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-theme-primary focus:ring-offset-2 focus:ring-offset-black rounded-lg px-2 py-1"
+          aria-label="Go back to previous page"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           <span>Back</span>

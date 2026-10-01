@@ -2,7 +2,8 @@ import { motion } from "motion/react";
 import { Share2, Download, Twitter, Loader2, Sparkles, AlertCircle, Film, ImagePlay, ExternalLink } from "lucide-react";
 import { useState, RefObject, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { downloadShareImage } from "../utils/imageExport";
+import { downloadShareImage, downloadImageBlob, renderShareImage } from "../utils/imageExport";
+import { shareImageWithFallback } from "../utils/shareFallback";
 import {
   downloadAnimatedGif,
   downloadAnimatedVideo,
@@ -17,6 +18,13 @@ import { SOUND_NAMES } from "../utils/soundManager";
 import { useOnlineStatus } from "../hooks/useOnlineStatus";
 import { useTheme } from "@/app/context/ThemeContext";
 import { mintWrap } from "../utils/walletKit";
+import { logger } from "../utils/logger";
+
+const log = logger.child("ShareCard");
+
+function isMobileDevice(): boolean {
+  return typeof navigator !== "undefined" && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
 interface ShareCardProps {
   username: string;
   transactions: number;
@@ -97,21 +105,33 @@ export function ShareCard({
     setDownloadError(null);
     setUsedMainThreadFallback(false);
 
+    const element = shareImageRef.current;
     try {
-      const result = await downloadShareImage(shareImageRef.current, {
-        onFallbackWarning: () => setUsedMainThreadFallback(true),
-        format: cardFormat,
+      // Never throws: falls back native share → download → OG image link.
+      const outcome = await shareImageWithFallback({
+        render: async () => {
+          const result = await renderShareImage(element, {
+            onFallbackWarning: () => setUsedMainThreadFallback(true),
+            format: cardFormat,
+          });
+          log.info(
+            `Share image generated in ${result.durationMs}ms (scale: ${result.scale}x, worker: ${result.usedWorker})`,
+          );
+          return result;
+        },
+        download: downloadImageBlob,
+        preview: { username, transactions, persona, topVibe, vibePercentage },
+        preferNativeShare: isMobileDevice(),
       });
-      log.info(
-        `Share image generated in ${result.durationMs}ms (scale: ${result.scale}x, worker: ${result.usedWorker})`,
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to generate share image";
-      setDownloadError(message);
-      log.error("Download failed:", error);
+
+      if (outcome.kind === "og-link-copied") {
+        toast.info(t("imageFallbackCopied"));
+      } else if (outcome.kind === "og-link") {
+        const url = outcome.url;
+        toast.info(t("imageFallbackOpen"), {
+          action: { label: t("openImage"), onClick: () => window.open(url, "_blank", "noopener") },
+        });
+      }
     } finally {
       setIsDownloading(false);
     }

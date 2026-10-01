@@ -7,10 +7,7 @@
  * retry affordance.
  */
 
-import {
-  shouldNavigateToPersona,
-  toIndexerErrorMessage,
-} from "../indexerFailure";
+import { shouldNavigateToPersona, toIndexerErrorMessage } from "../indexerFailure";
 
 describe("shouldNavigateToPersona", () => {
   it("does not navigate when a fatal failure left no result", () => {
@@ -36,14 +33,33 @@ describe("shouldNavigateToPersona", () => {
 describe("toIndexerErrorMessage", () => {
   it("surfaces the underlying indexer error message", () => {
     expect(toIndexerErrorMessage(new Error("Horizon request timed out"))).toBe(
-      "Horizon request timed out",
+      "Horizon request timed out"
     );
   });
 
   it("falls back to a generic message for non-Error throws", () => {
     expect(toIndexerErrorMessage("boom")).toBe("Failed to load wrap data");
-    expect(toIndexerErrorMessage(new Error(""))).toBe(
-      "Failed to load wrap data",
+    expect(toIndexerErrorMessage(new Error(""))).toBe("Failed to load wrap data");
+  });
+
+  it.each<unknown>([
+    null,
+    undefined,
+    0,
+    false,
+    42n,
+    Symbol("failure"),
+    () => undefined,
+    [],
+    { message: "not an Error" },
+    Object.create(null),
+  ])("falls back safely for unexpected values (%s)", (error) => {
+    expect(toIndexerErrorMessage(error)).toBe("Failed to load wrap data");
+  });
+
+  it("preserves a non-empty Error message verbatim", () => {
+    expect(toIndexerErrorMessage(new TypeError("  invalid response  "))).toBe(
+      "  invalid response  "
     );
   });
 });

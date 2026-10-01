@@ -567,6 +567,61 @@ paths:
               example:
                 error: "Internal server error"
 
+  /api/notifications/data:
+    delete:
+      operationId: deleteNotificationDataByToken
+      summary: Token-based data deletion for email recipients (GDPR)
+      description: |
+        Token-based data deletion so an email recipient can remove their data
+        without connecting a wallet. The token is the email unsubscribe token.
+        Permanently removes the subscription record (including the email address),
+        period index entries, and dispatch logs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+                  description: Unsubscribe token from a notification email.
+                  example: "f3a5c1d9e2b8476fa0b1c2d3e4f5a6b7"
+      responses:
+        "200":
+          description: Data deleted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+              example:
+                ok: true
+        "400":
+          description: Missing or invalid unsubscribe token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "Provide an unsubscribe token"
+        "401":
+          description: Unsubscribe token not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "Token not found"
+        "500":
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "Internal server error"
+
   /api/notifications/data/{wallet}:
     delete:
       operationId: deleteNotificationData

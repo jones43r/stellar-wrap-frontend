@@ -3,6 +3,10 @@
  *
  * Used by both the frontend (typed fetch calls) and documentation tooling
  * (OpenAPI codegen, mock servers, etc.).
+ *
+ * This module is the single canonical home for domain types. Types that were
+ * previously duplicated under `app/types` are re-exported here so consumers
+ * have one import surface (see the barrel at the bottom of this file).
  */
 
 // ---------------------------------------------------------------------------
@@ -111,3 +115,35 @@ export interface OgResponseMeta {
   /** Cache-Control header value set on the response. */
   cacheControl: string;
 }
+
+// ---------------------------------------------------------------------------
+// Canonical barrel
+// ---------------------------------------------------------------------------
+//
+// `src/types` is the single source of truth for domain types. The parallel
+// `app/types` tree previously re-declared several of these shapes (notably the
+// Horizon/Soroban response types), which let a component and the service
+// feeding it drift apart while TypeScript still certified both sides.
+//
+// Consumers should import from `src/types` (or this module directly). The
+// re-exports below keep the historical `app/types` import paths working while
+// the duplicate declarations are removed, so there is exactly one definition
+// per domain type.
+
+export type { Trustline, TrustlineAsset, TrustlineFlags } from "./trustline";
+export type {
+  ApiError,
+  ApiResponse,
+  PaginatedResponse,
+  HorizonAccountResponse,
+  HorizonBalance,
+  HorizonErrorResponse,
+  SorobanRpcResponse,
+  SorobanSimulateResponse,
+} from "./api";
+export type {
+  MultiSigAccount,
+  MultiSigSigner,
+  MultiSigThresholds,
+  MultiSigTransaction,
+} from "./multiSig";

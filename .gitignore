@@ -1,51 +1,44 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-/package-lock.json
-/yarn.lock
-/.pnpm-store
+# Testing
+coverage/
 
+# Next.js
+.next/
+out/
+build/
 
-# testing
-/coverage
+# Production
+.vercel
 
-# next.js
-/.next/
-/out/
-/.size-limit-report.json
-/.size-limit-results.json
-
-# production
-/build
-
-# misc
+# Misc
 .DS_Store
 *.pem
 
-# debug
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-.pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
-!.env.example
+# Local env files
+.env*.local
 
-# vercel
+# Vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
 
-# Storybook
-storybook-static
+# Playwright
+# Keep committed visual regression baselines reviewable in pull requests.
+# Only transient Playwright output is ignored; the baseline snapshots under
+# app/visual-tests/ (e.g. *-snapshots/) are intentionally tracked so that
+# baseline changes show up as reviewable image diffs in a PR.
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

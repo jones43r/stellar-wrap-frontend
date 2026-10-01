@@ -37,6 +37,31 @@ describe("stellarAmount Utilities", () => {
       expect(() => toStroops("abc")).toThrow(/Invalid numeric characters/);
       expect(() => toStroops("1.2.3")).toThrow(/Invalid amount format/);
     });
+
+    it("parses edge-case stroop inputs without precision loss", () => {
+      expect(toStroops("0")).toBe(0n);
+      expect(toStroops("0.0")).toBe(0n);
+      expect(toStroops("0.0000000")).toBe(0n);
+      expect(toStroops(".5")).toBe(5_000_000n);
+      expect(toStroops("0.5")).toBe(5_000_000n);
+      expect(toStroops("1.")).toBe(10_000_000n);
+      expect(toStroops("0001.0000000")).toBe(10_000_000n);
+      expect(toStroops("0.0000001")).toBe(1n);
+      expect(toStroops("922337203685.4775807")).toBe(MAX_STROOPS);
+    });
+
+    it("rejects amounts that overflow the i64 stroop range", () => {
+      expect(() => toStroops("922337203685.4775808")).toThrow();
+      expect(() => toStroops("922337203686")).toThrow();
+    });
+
+    it("rejects malformed numeric strings", () => {
+      expect(() => toStroops("")).toThrow();
+      expect(() => toStroops(" ")).toThrow();
+      expect(() => toStroops("1,000")).toThrow();
+      expect(() => toStroops("1e7")).toThrow();
+      expect(() => toStroops("+1")).toThrow();
+    });
   });
 
   describe("fromStroops", () => {
@@ -54,6 +79,15 @@ describe("stellarAmount Utilities", () => {
 
     it("converts MAX_STROOPS to MAX_STELLAR_LIMIT", () => {
       expect(fromStroops(MAX_STROOPS)).toBe(MAX_STELLAR_LIMIT);
+    });
+
+    it("round-trips edge-case stroop values exactly", () => {
+      expect(fromStroops(0n)).toBe("0.0000000");
+      expect(fromStroops(0n, true)).toBe("0");
+      expect(fromStroops(5_000_000n)).toBe("0.5000000");
+      expect(fromStroops(5_000_000n, true)).toBe("0.5");
+      expect(fromStroops(MAX_STROOPS)).toBe(MAX_STELLAR_LIMIT);
+      expect(toStroops(fromStroops(MAX_STROOPS))).toBe(MAX_STROOPS);
     });
   });
 
@@ -73,6 +107,15 @@ describe("stellarAmount Utilities", () => {
       expect(isValidStellarAmount("abc")).toBe(false);
       expect(isValidStellarAmount("999999999999999999.0")).toBe(false); // exceeds i64
     });
+
+    it("rejects edge-case malformed and boundary inputs", () => {
+      expect(isValidStellarAmount(" ")).toBe(false);
+      expect(isValidStellarAmount("1,000")).toBe(false);
+      expect(isValidStellarAmount("1e7")).toBe(false);
+      expect(isValidStellarAmount("+1")).toBe(false);
+      expect(isValidStellarAmount("922337203685.4775808")).toBe(false);
+      expect(isValidStellarAmount("0.0000000")).toBe(false);
+    });
   });
 
   describe("formatStellarAmount", () => {
@@ -81,6 +124,13 @@ describe("stellarAmount Utilities", () => {
       expect(formatStellarAmount("50.1230000")).toBe("50.123");
       expect(formatStellarAmount("12.3456789", 4)).toBe("12.3456");
       expect(formatStellarAmount(undefined)).toBe("0");
+    });
+
+    it("handles edge-case display inputs", () => {
+      expect(formatStellarAmount("0.0000000")).toBe("0");
+      expect(formatStellarAmount("0.0000001")).toBe("0.0000001");
+      expect(formatStellarAmount("1.0000000", 0)).toBe("1");
+      expect(formatStellarAmount(null as unknown as string)).toBe("0");
     });
   });
 });

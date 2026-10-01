@@ -11,7 +11,7 @@ import {
   WalletProviderType,
   detectWalletProvider,
 } from "../services/networkSwitchService";
-import { DEFAULT_BASE_FEE_STROOPS, formatStellarAmount, stroopsToXlm } from "../utils/stellarAmounts";
+import { DEFAULT_BASE_FEE_STROOPS, formatStellarAmount, stroopsToXlm } from "../utils/stellarAmount";
 
 export interface UseNetworkSwitchOptions {
   onSuccess?: (result: NetworkSwitchResult) => void;

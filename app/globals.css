@@ -1,150 +1,185 @@
 @import "tailwindcss";
+
 :root {
-  color-scheme: dark;
-  /* Dark mode (default) */
-  --background: #191414;
-  --foreground: #ededed;
-  --font-sans: Arial, Helvetica, sans-serif;
+color-scheme: dark;
 
-  /* Theme Variables - Default (Green) */
-  --color-theme-primary: #4ade80;
-  --color-theme-primary-rgb: 74, 222, 128;
-  --color-theme-background: #000000;
+/* Dark mode (default) */
+--background: #191414;
+--foreground: #ededed;
+--font-sans: Arial, Helvetica, sans-serif;
 
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+/* Theme Variables - Default (Green) */
+--color-theme-primary: #4ade80;
+--color-theme-primary-rgb: 74, 222, 128;
+--color-theme-background: #000000;
 
-  color-scheme: dark;
+--color-background: var(--background);
+--color-foreground: var(--foreground);
+
+/* Skeleton shimmer */
+--skeleton-shimmer-base: rgba(255, 255, 255, 0.06);
+--skeleton-shimmer-highlight: rgba(255, 255, 255, 0.14);
 }
 
 /* Light mode */
 :root.light {
-  color-scheme: light;
-  --background: #ffffff;
-  --foreground: #1a1a1a;
-  --color-theme-background: #f5f5f5;
-  --color-theme-primary: #166534;
-  --color-theme-primary-rgb: 22, 101, 52;
-  color-scheme: light;
+color-scheme: light;
+
+--background: #ffffff;
+--foreground: #1a1a1a;
+--color-theme-background: #f5f5f5;
+
+--color-theme-primary: #166534;
+--color-theme-primary-rgb: 22, 101, 52;
+
+--skeleton-shimmer-base: rgba(0, 0, 0, 0.06);
+--skeleton-shimmer-highlight: rgba(0, 0, 0, 0.12);
 }
 
 /* Utility class for theme background */
 .bg-theme-background {
-  background-color: var(--color-theme-background);
-  transition: background-color 200ms ease, color 200ms ease;
+background-color: var(--color-theme-background);
+transition: background-color 200ms ease, color 200ms ease;
 }
 
 .bg-theme-gradient {
-  background: var(--color-theme-gradient);
+background: var(--color-theme-gradient);
+}
+
+@keyframes skeleton-shimmer {
+0% {
+background-position: 200% 0;
+}
+
+100% {
+background-position: -200% 0;
+}
+}
+
+.skeleton-shimmer {
+background-image: linear-gradient(
+110deg,
+var(--skeleton-shimmer-base) 25%,
+var(--skeleton-shimmer-highlight) 50%,
+var(--skeleton-shimmer-base) 75%
+);
+background-size: 200% 100%;
+animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+.skeleton-shimmer {
+animation: none;
+}
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  transition: background-color 200ms ease, color 200ms ease;
+background: var(--background);
+color: var(--foreground);
+font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+transition: background-color 200ms ease, color 200ms ease;
 }
 
 ::selection {
-  background-color: var(--color-theme-primary);
-  color: #ffffff;
+background-color: var(--color-theme-primary);
+color: #ffffff;
 }
 
 *:focus-visible {
-  outline: 2px solid var(--color-theme-primary) !important;
-  outline-offset: 2px !important;
-  border-radius: 4px;
+outline: 2px solid var(--color-theme-primary) !important;
+outline-offset: 2px !important;
+border-radius: 4px;
 }
 
 button:focus:not(:focus-visible),
 a:focus:not(:focus-visible),
 [tabindex]:focus:not(:focus-visible) {
-  outline: none !important;
+outline: none !important;
 }
 
 .skip-link {
-  position: fixed;
-  left: 1rem;
-  top: 1rem;
-  z-index: 9999;
-  transform: translateY(-150%);
-  border-radius: 0.75rem;
-  background: #ffffff;
-  color: #000000;
-  padding: 0.75ret 1rem;
-  font-weight: 800;
-  transition: transform 150ms ease;
+position: fixed;
+left: 1rem;
+top: 1rem;
+z-index: 9999;
+transform: translateY(-150%);
+border-radius: 0.75rem;
+background: #ffffff;
+color: #000000;
+padding: 0.75rem 1rem;
+font-weight: 800;
+transition: transform 150ms ease;
 }
 
-.skip-ink:focus {
-  transform: translateY(0);
-  outline: 3px solid var(--color-theme-primary);
-  outline-offset: 3px;
+.skip-link:focus {
+transform: translateY(0);
+outline: 3px solid var(--color-theme-primary);
+outline-offset: 3px;
 }
 
 /* ─── Theme toggle utilities ───────────────────────────────────────────────
-   Replace all inline style= attributes in DarkLightToggle / ColorToggle.
-   Values that depend on runtime CSS custom properties are expressed with
-   var() so no JavaScript is needed for them. ────────────────────────────── */
+Replace all inline style= attributes in DarkLightToggle / ColorToggle.
+Values that depend on runtime CSS custom properties are expressed with
+var() so no JavaScript is needed for them. ────────────────────────────── */
 
 .theme-toggle-btn {
-  border-color: var(--color-theme-primary);
-  box-shadow: 0 0 15px rgba(var(--color-theme-primary-rgb), 0.3);
+border-color: var(--color-theme-primary);
+box-shadow: 0 0 15px rgba(var(--color-theme-primary-rgb), 0.3);
 }
 
 .theme-toggle-btn:hover {
-  box-shadow: 0 0 20px rgba(var(--color-theme-primary-rgb), 0.5);
+box-shadow: 0 0 20px rgba(var(--color-theme-primary-rgb), 0.5);
 }
 
 /* Background adapts to dark/light mode via Tailwind's dark: variant */
 .theme-toggle-bg {
-  background-color: #000;
+background-color: #000;
 }
 
 :root.light .theme-toggle-bg {
-  background-color: #fff;
+background-color: #fff;
 }
 
 /* Color picker panel */
 .color-picker-panel {
-  background-color: rgba(0, 0, 0, 0.9);
-  border-color: rgba(255, 255, 255, 0.2);
+background-color: rgba(0, 0, 0, 0.9);
+border-color: rgba(255, 255, 255, 0.2);
 }
 
 :root.light .color-picker-panel {
-  background-color: rgba(255, 255, 255, 0.95);
-  border-color: rgba(0, 0, 0, 0.1);
+background-color: rgba(255, 255, 255, 0.95);
+border-color: rgba(0, 0, 0, 0.1);
 }
 
 /* Color picker row */
 .color-option-row {
-  background-color: rgba(255, 255, 255, 0.05);
+background-color: rgba(255, 255, 255, 0.05);
 }
 
 :root.light .color-option-row {
-  background-color: rgba(0, 0, 0, 0.03);
+background-color: rgba(0, 0, 0, 0.03);
 }
 
 /* Text colours inside the picker */
 .color-picker-title {
-  color: #fff;
+color: #fff;
 }
 
 :root.light .color-picker-title {
-  color: #000;
+color: #000;
 }
 
 .color-picker-hint {
-  color: rgba(255, 255, 255, 0.4);
+color: rgba(255, 255, 255, 0.4);
 }
 
 :root.light .color-picker-hint {
-  color: rgba(0, 0, 0, 0.4);
+color: rgba(0, 0, 0, 0.4);
 }
 
 /* Icon colour tracks the current theme primary */
 .theme-icon {
-  color: var(--color-theme-primary);
+color: var(--color-theme-primary);
 }

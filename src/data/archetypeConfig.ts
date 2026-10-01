@@ -37,7 +37,8 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #B794F6 0%, #6B46C1 100%)",
       icon: Wand2,
     },
-    description: "Like Gandalf in Middle-earth, you wield DeFi magic with wisdom. The blockchain bends to your will.",
+    description:
+      "Like Gandalf in Middle-earth, you wield DeFi magic with wisdom. The blockchain bends to your will.",
   },
   "The Explorer": {
     style: {
@@ -45,7 +46,8 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%)",
       icon: Compass,
     },
-    description: "You venture into uncharted territories, discovering new dApps and protocols. Adventure calls, and you answer.",
+    description:
+      "You venture into uncharted territories, discovering new dApps and protocols. Adventure calls, and you answer.",
   },
   "The Architect": {
     style: {
@@ -53,7 +55,8 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #43E97B 0%, #38F9D7 100%)",
       icon: Hammer,
     },
-    description: "Builder. Creator. You don't just use the network—you help construct it. Your Soroban contracts are your legacy.",
+    description:
+      "Builder. Creator. You don't just use the network—you help construct it. Your Soroban contracts are your legacy.",
   },
   "The Patron": {
     style: {
@@ -61,7 +64,8 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #FF6B9D 0%, #C44569 100%)",
       icon: Crown,
     },
-    description: "You hold the line. With significant holdings and patient conviction, you're the backbone of the ecosystem.",
+    description:
+      "You hold the line. With significant holdings and patient conviction, you're the backbone of the ecosystem.",
   },
   "The Collector": {
     style: {
@@ -69,7 +73,8 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #FFD93D 0%, #FF6B35 100%)",
       icon: Gem,
     },
-    description: "Diversity is your strength. You've accumulated a treasure trove of assets across the network.",
+    description:
+      "Diversity is your strength. You've accumulated a treasure trove of assets across the network.",
   },
   "The Trader": {
     style: {
@@ -77,7 +82,8 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #00D4FF 0%, #0099CC 100%)",
       icon: Sparkles,
     },
-    description: "You live for the swap. Every price movement is an opportunity, and your reflexes are sharp.",
+    description:
+      "You live for the swap. Every price movement is an opportunity, and your reflexes are sharp.",
   },
   /** Yield Farmer: active on DEX with high swap/offer volume and LP positions */
   "The Yield Farmer": {
@@ -86,7 +92,8 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #22C55E 0%, #15803D 100%)",
       icon: Leaf,
     },
-    description: "You tend the liquidity pools like fertile fields. Every swap and every position is cultivated for the harvest.",
+    description:
+      "You tend the liquidity pools like fertile fields. Every swap and every position is cultivated for the harvest.",
   },
   /** Hodler: long-term, low-activity wallet that prefers holding over trading */
   "The Hodler": {
@@ -95,17 +102,19 @@ export const ARCHETYPES: Record<string, ArchetypeConfig> = {
       gradient: "linear-gradient(135deg, #EAB308 0%, #92400E 100%)",
       icon: Vault,
     },
-    description: "Patience is your edge. While others chase every candle, you hold steady and let conviction do the work.",
+    description:
+      "Patience is your edge. While others chase every candle, you hold steady and let conviction do the work.",
   },
 };
 
 // Legacy style map for backward compatibility
-export const ARCHETYPE_STYLES: Record<string, ArchetypeStyle> = Object.entries(
-  ARCHETYPES
-).reduce((acc, [key, config]) => {
-  acc[key] = config.style;
-  return acc;
-}, {} as Record<string, ArchetypeStyle>);
+export const ARCHETYPE_STYLES: Record<string, ArchetypeStyle> = Object.entries(ARCHETYPES).reduce(
+  (acc, [key, config]) => {
+    acc[key] = config.style;
+    return acc;
+  },
+  {} as Record<string, ArchetypeStyle>
+);
 
 export function getArchetypeStyle(name: string): ArchetypeStyle {
   return ARCHETYPES[name]?.style ?? DEFAULT_STYLE;
@@ -121,6 +130,34 @@ export function archetypeImagePath(name: string): string {
     .replace(/^the\s+/, "")
     .replace(/\s+/g, "-");
   return `/archetypes/${slug}.png`;
+}
+
+export function archetypeWebpPath(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/^the\s+/, "")
+    .replace(/\s+/g, "-");
+  return `/archetypes/${slug}.webp`;
+}
+
+export function archetypeOgImagePath(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/^the\s+/, "")
+    .replace(/\s+/g, "-");
+  return `/archetypes/og/${slug}.png`;
+}
+
+export function archetypeResponsivePath(
+  name: string,
+  size: 64 | 128 | 256,
+  format: "png" | "webp" = "webp"
+): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/^the\s+/, "")
+    .replace(/\s+/g, "-");
+  return `/archetypes/responsive/${size}/${slug}.${format}`;
 }
 
 /**

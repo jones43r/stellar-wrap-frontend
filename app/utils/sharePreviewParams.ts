@@ -26,14 +26,40 @@ const MAX_VIBE_LEN = 40;
 const MAX_ARCHETYPE_PATH_LEN = 120;
 
 const SAFE_TEXT = /^[\w\s.@#+\-/'(),!?&%]+$/u;
-const SAFE_ARCHETYPE_PATH = /^\/archetypes\/[\w-]+\.(png|jpg|jpeg|webp)$/i;
+// Usernames are handles, federated names, or shortened addresses — no whitespace.
+const SAFE_USERNAME = /^[\w.\-*@]+$/;
+
+/** Personas the app can compute; anything else falls back to the default. */
+export const KNOWN_PERSONAS = [
+  "Network Pioneer",
+  "Quiet Wallet",
+  "Explorer",
+  "The Explorer",
+  "The Wizard",
+  "The Hodler",
+  "The Yield Farmer",
+  "The Trader",
+  "The Architect",
+  "The Patron",
+  "The DeFi Patron",
+  "The Collector",
+] as const;
+
+/** Vibe labels the app can compute; anything else falls back to the default. */
+export const KNOWN_VIBES = [
+  "Steady",
+  "Power User",
+  "DeFi Sorcerer",
+  "Art Curator",
+  "Code Alchemist",
+  "DeFi Degen",
+] as const;
+const SAFE_ARCHETYPE_PATH =
+  /^\/archetypes\/(?:(?:og|responsive\/\d+)\/)?[\w-]+\.(png|jpg|jpeg|webp)$/i;
 
 type SearchParamInput = URLSearchParams | Record<string, string | string[] | undefined>;
 
-function readParam(
-  input: SearchParamInput,
-  key: string,
-): string | undefined {
+function readParam(input: SearchParamInput, key: string): string | undefined {
   if (input instanceof URLSearchParams) {
     return input.get(key) ?? undefined;
   }
@@ -49,8 +75,26 @@ function sanitizeText(value: string | undefined, maxLen: number): string | undef
   return trimmed;
 }
 
-function parseBoundedInt(value: string | undefined, min: number, max: number): number | undefined {
+function sanitizeUsername(value: string | undefined): string | undefined {
   if (!value) return undefined;
+  // Truncate rather than reject so a legitimate long username still renders.
+  const trimmed = value.trim().slice(0, MAX_USERNAME_LEN);
+  if (!trimmed || !SAFE_USERNAME.test(trimmed)) return undefined;
+  return trimmed;
+}
+
+function matchKnown(
+  value: string | undefined,
+  allowed: readonly string[],
+  maxLen: number
+): string | undefined {
+  const text = sanitizeText(value, maxLen)?.toLowerCase();
+  if (!text) return undefined;
+  return allowed.find((candidate) => candidate.toLowerCase() === text);
+}
+
+function parseBoundedInt(value: string | undefined, min: number, max: number): number | undefined {
+  if (!value || !/^\d{1,12}$/.test(value.trim())) return undefined;
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed < min || parsed > max) return undefined;
   return parsed;
@@ -59,17 +103,14 @@ function parseBoundedInt(value: string | undefined, min: number, max: number): n
 /**
  * Parse and validate share preview query params. Invalid fields fall back to defaults.
  */
-export function parseSharePreviewParams(
-  input: SearchParamInput,
-): SharePreviewState {
+export function parseSharePreviewParams(input: SearchParamInput): SharePreviewState {
   const username =
-    sanitizeText(readParam(input, "username"), MAX_USERNAME_LEN) ??
-    SHARE_PREVIEW_DEFAULTS.username;
+    sanitizeUsername(readParam(input, "username")) ?? SHARE_PREVIEW_DEFAULTS.username;
   const persona =
-    sanitizeText(readParam(input, "persona"), MAX_PERSONA_LEN) ??
+    matchKnown(readParam(input, "persona"), KNOWN_PERSONAS, MAX_PERSONA_LEN) ??
     SHARE_PREVIEW_DEFAULTS.persona;
   const topVibe =
-    sanitizeText(readParam(input, "topVibe"), MAX_VIBE_LEN) ??
+    matchKnown(readParam(input, "topVibe"), KNOWN_VIBES, MAX_VIBE_LEN) ??
     SHARE_PREVIEW_DEFAULTS.topVibe;
 
   const transactions =
@@ -97,9 +138,7 @@ export function parseSharePreviewParams(
   };
 }
 
-export function buildSharePreviewSearchParams(
-  preview: SharePreviewState,
-): URLSearchParams {
+export function buildSharePreviewSearchParams(preview: SharePreviewState): URLSearchParams {
   const params = new URLSearchParams();
   params.set("username", preview.username);
   params.set("transactions", String(preview.transactions));
@@ -112,16 +151,20 @@ export function buildSharePreviewSearchParams(
   return params;
 }
 
-export function buildPublicSharePath(
-  preview: SharePreviewState,
-  locale = "en",
-): string {
+export function buildPublicSharePath(preview: SharePreviewState, locale = "en"): string {
   const query = buildSharePreviewSearchParams(preview).toString();
   return `/${locale}/share?${query}`;
 }
 
 export function hasSharePreviewParams(input: SearchParamInput): boolean {
-  const keys = ["username", "transactions", "persona", "topVibe", "vibePercentage", "archetypeImage"];
+  const keys = [
+    "username",
+    "transactions",
+    "persona",
+    "topVibe",
+    "vibePercentage",
+    "archetypeImage",
+  ];
   return keys.some((key) => {
     const value = readParam(input, key);
     return value !== undefined && value !== "";

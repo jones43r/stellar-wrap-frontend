@@ -12,6 +12,9 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
+  // Jest is the single runner for the unit and integration suites.
+  // The former Vitest suites (test:integration, test:hooks) now run here too,
+  // so this config is the one place that defines the test surface.
   testMatch: [
     '<rootDir>/__tests__/**/*.[jt]s?(x)',
     '**/__tests__/**/*.test.[jt]s?(x)',

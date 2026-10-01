@@ -6,7 +6,7 @@
  * the round trip is checked well above Number.MAX_SAFE_INTEGER.
  */
 import { toStroops, fromStroops, MAX_STROOPS } from "../stellarAmount";
-import { formatXlm, parseAmountToStroops } from "../stellarAmounts";
+import { formatXlm, parseAmountToStroops } from "../stellarAmount";
 
 const RUNS = 5000;
 

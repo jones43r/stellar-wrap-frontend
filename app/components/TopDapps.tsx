@@ -3,10 +3,12 @@
 import { motion } from "framer-motion";
 import { useWrapStore } from "../store/wrapStore";
 import { DappCard } from "./DappCard";
+import { DappCardSkeleton } from "./DappCardSkeleton";
 
 export function TopDapps() {
-  const { result } = useWrapStore();
+  const { result, status, isLoading } = useWrapStore();
   const topDapps = result?.dapps ?? [];
+  const showSkeleton = isLoading || status === "loading";
 
   const container = {
     hidden: { opacity: 0 },
@@ -58,17 +60,19 @@ export function TopDapps() {
         animate="show"
         className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6 w-full"
       >
-        {topDapps.slice(0, 3).map((dapp, index) => (
-          <DappCard
-            key={dapp.name}
-            rank={index + 1}
-            name={dapp.name}
-            icon={dapp.icon}
-            logo={dapp.logo}
-            interactions={dapp.interactions}
-            delay={index * 0.15}
-          />
-        ))}
+        {showSkeleton
+          ? [0, 1, 2].map((index) => <DappCardSkeleton key={index} />)
+          : topDapps.slice(0, 3).map((dapp, index) => (
+              <DappCard
+                key={dapp.name}
+                rank={index + 1}
+                name={dapp.name}
+                icon={dapp.icon}
+                logo={dapp.logo}
+                interactions={dapp.interactions}
+                delay={index * 0.15}
+              />
+            ))}
       </motion.div>
     </div>
   );

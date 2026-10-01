@@ -6,7 +6,7 @@ import {
   xlmToStroops,
   stroopsToXlm,
   formatXlm,
-} from "../stellarAmounts";
+} from "../stellarAmount";
 
 describe("parseAmountToStroops", () => {
   it("parses whole XLM to stroops", () => {

@@ -1,5 +1,7 @@
 {
   "first-load": 330000,
   "landing": 165000,
-  "share": 275000
+  "share": 275000,
+  "archetype-images-total": 450000,
+  "archetype-image-max": 150000
 }

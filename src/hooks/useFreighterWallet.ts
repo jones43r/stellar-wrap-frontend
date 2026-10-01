@@ -41,7 +41,7 @@ import {
 import { getHorizonServer } from "../../app/utils/stellarClient";
 import { horizonQueue } from "../utils/horizonRequestQueue";
 import { useRateLimitStore } from "../store/rateLimitStore";
-import { truncatePublicKey, formatXlm } from "../utils/stellarAmounts";
+import { truncatePublicKey, formatXlm } from "../utils/stellarAmount";
 import type { Network } from "../config";
 
 // ─── Error codes ──────────────────────────────────────────────────────────────

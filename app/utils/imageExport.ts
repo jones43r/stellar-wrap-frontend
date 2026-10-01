@@ -196,6 +196,11 @@ function triggerDownload(blob: Blob, filename: string = "stellar-wrapped-2026.pn
   window.setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
+export interface RenderedShareImage extends ShareImageExportResult {
+  blob: Blob;
+  filename: string;
+}
+
 /**
  * Downloads the ShareImageCard as a PNG image
  * @param element - The DOM element to capture (ShareImageCard ref)
@@ -205,6 +210,22 @@ export async function downloadShareImage(
   element: HTMLElement,
   options?: ShareImageExportOptions,
 ): Promise<ShareImageExportResult> {
+  const { blob, filename, ...result } = await renderShareImage(element, options);
+  triggerDownload(blob, filename);
+  return result;
+}
+
+/** Saves an already rendered share image to the user's device. */
+export { triggerDownload as downloadImageBlob };
+
+/**
+ * Renders the ShareImageCard to a PNG blob without downloading it.
+ * Throws when canvas reads are blocked (tainted canvas, private mode) or on timeout.
+ */
+export async function renderShareImage(
+  element: HTMLElement,
+  options?: ShareImageExportOptions,
+): Promise<RenderedShareImage> {
   const startTime = performance.now();
   const scale = getCaptureScale();
   const format = options?.format || "square";
@@ -239,9 +260,10 @@ export async function downloadShareImage(
         });
 
         const { blob, usedWorker } = await canvasToBlob(canvas, options);
-        triggerDownload(blob, filename);
 
         return {
+          blob,
+          filename,
           usedWorker,
           scale,
           durationMs: Math.round(performance.now() - startTime),

@@ -6,11 +6,25 @@
  * - GIF: canvas frames + gifenc (Chrome, Firefox, Safari 16+)
  * - MP4/WebM: MediaRecorder on canvas stream (Chrome, Firefox, Edge)
  *
- * GIF encoding uses gifenc; falls back to static PNG after 15s timeout.
+ * GIF encoding uses gifenc inside a Web Worker so the UI stays responsive,
+ * reporting per-frame progress; falls back to static PNG after 15s timeout.
  */
 
 import { GIFEncoder, quantize, applyPalette } from "gifenc";
 import { downloadShareImage } from "./imageExport";
+import { logger } from "./logger";
+
+const log = logger.child("animationExport");
+
+/** Thrown when the device runs out of memory while encoding (e.g. mobile Safari). */
+export class ExportOutOfMemoryError extends Error {
+  constructor() {
+    super(
+      "Your device ran out of memory creating the animation. Downloading a static image instead.",
+    );
+    this.name = "ExportOutOfMemoryError";
+  }
+}
 
 export interface ShareAnimationData {
   username: string;
@@ -162,13 +176,19 @@ async function captureFrames(
 function encodeGifInWorker(
   frames: ImageData[],
   delayMs: number,
+  maxBytes: number,
+  onEncodeProgress: (fraction: number) => void,
 ): Promise<Uint8Array> {
   return new Promise((resolve, reject) => {
     if (typeof Worker === "undefined") {
       try {
-        resolve(encodeGifSync(frames, delayMs));
+        let gif = encodeGifSync(frames, delayMs);
+        if (gif.byteLength > maxBytes) {
+          gif = encodeGifSync(frames.filter((_, i) => i % 2 === 0), delayMs * 2);
+        }
+        resolve(gif);
       } catch (e) {
-        reject(e);
+        reject(e instanceof RangeError ? new ExportOutOfMemoryError() : e);
       }
       return;
     }
@@ -178,32 +198,42 @@ function encodeGifInWorker(
       { type: "module" },
     );
 
-    worker.onmessage = (e: MessageEvent<{ gif?: Uint8Array; error?: string }>) => {
+    worker.onmessage = (
+      e: MessageEvent<{ gif?: Uint8Array; progress?: number; error?: string; outOfMemory?: boolean }>,
+    ) => {
+      if (typeof e.data.progress === "number") {
+        onEncodeProgress(e.data.progress);
+        return;
+      }
       worker.terminate();
-      if (e.data.error) reject(new Error(e.data.error));
+      if (e.data.outOfMemory) reject(new ExportOutOfMemoryError());
+      else if (e.data.error) reject(new Error(e.data.error));
       else resolve(e.data.gif!);
     };
+    // Frame buffers are transferred to the worker, so there is no main-thread
+    // retry; an uncaught worker error is most often an allocation failure.
     worker.onerror = () => {
       worker.terminate();
-      try {
-        resolve(encodeGifSync(frames, delayMs));
-      } catch (err) {
-        reject(err);
-      }
+      reject(new ExportOutOfMemoryError());
     };
 
-    const transferable = frames.map((f) => f.data.buffer);
-    worker.postMessage(
-      {
-        frames: frames.map((f) => ({
-          width: f.width,
-          height: f.height,
-          data: f.data,
-        })),
-        delayMs,
-      },
-      transferable,
-    );
+    try {
+      worker.postMessage(
+        {
+          frames: frames.map((f) => ({
+            width: f.width,
+            height: f.height,
+            data: f.data,
+          })),
+          delayMs,
+          maxBytes,
+        },
+        frames.map((f) => f.data.buffer),
+      );
+    } catch (err) {
+      worker.terminate();
+      reject(err instanceof RangeError ? new ExportOutOfMemoryError() : err);
+    }
   });
 }
 
@@ -237,15 +267,21 @@ async function withTimeout<T>(
   ms: number,
   fallback: () => Promise<T>,
 ): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       promise,
       new Promise<T>((_, reject) =>
-        setTimeout(() => reject(new Error("Export timeout")), ms),
+        (timer = setTimeout(() => reject(new Error("Export timeout")), ms)),
       ),
     ]);
-  } catch {
+  } catch (err) {
+    // Out-of-memory needs its own message rather than the timeout fallback.
+    if (err instanceof ExportOutOfMemoryError) throw err;
+    if (err instanceof RangeError) throw new ExportOutOfMemoryError();
     return fallback();
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -255,14 +291,28 @@ export async function downloadAnimatedGif(
   fallbackElement?: HTMLElement,
 ): Promise<void> {
   const run = async () => {
+    const startedAt = performance.now();
     const frames = await captureFrames(data, onProgress);
-    onProgress({ phase: "encoding", progress: 60, message: "Encoding GIF..." });
+    const capturedAt = performance.now();
+    onProgress({ phase: "encoding", progress: 50, message: "Encoding GIF..." });
 
-    let gifBytes = await encodeGifInWorker(frames, FRAME_INTERVAL_MS);
-    if (gifBytes.byteLength > GIF_MAX_BYTES) {
-      const reduced = frames.filter((_, i) => i % 2 === 0);
-      gifBytes = encodeGifSync(reduced, FRAME_INTERVAL_MS * 2);
-    }
+    const gifBytes = await encodeGifInWorker(
+      frames,
+      FRAME_INTERVAL_MS,
+      GIF_MAX_BYTES,
+      (fraction) =>
+        onProgress({
+          phase: "encoding",
+          progress: 50 + Math.round(fraction * 40),
+          message: `Encoding GIF... ${Math.round(fraction * 100)}%`,
+        }),
+    );
+    // Recorded so export-duration regressions are visible in logs/profiles.
+    log.info("GIF export timing", {
+      captureMs: Math.round(capturedAt - startedAt),
+      encodeMs: Math.round(performance.now() - capturedAt),
+      bytes: gifBytes.byteLength,
+    });
 
     onProgress({ phase: "encoding", progress: 90, message: "Finalizing..." });
     downloadBlob(

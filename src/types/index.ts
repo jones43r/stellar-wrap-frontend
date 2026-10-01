@@ -37,3 +37,11 @@ export interface WrappedData {
   vibes: Vibe[];
   archetype: Archetype;
 }
+
+// Canonical barrel for domain types. `src/types` is the single source of
+// truth; the parallel `app/types` tree is re-exported here so consumers can
+// import every domain type from one place while the duplicate tree is
+// removed. Horizon/Soroban response shapes live in `./api`.
+export * from './api';
+export * from './trustline';
+export * from './multiSig';

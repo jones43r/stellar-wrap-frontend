@@ -48,7 +48,9 @@ vi.mock("@/app/hooks/useSound", () => ({
   useSound: () => ({ playSound: mockPlaySound }),
 }));
 
-const MOCK_RESULT = {
+import { createWrappedResult } from "@/app/test/fixtures/wrappedResult";
+
+const MOCK_RESULT = createWrappedResult({
   username: "testuser",
   persona: "The Wizard",
   personaDescription: "",
@@ -56,7 +58,7 @@ const MOCK_RESULT = {
   percentile: 95,
   dapps: [{ name: "StellarX", interactions: 10 }],
   vibes: [{ type: "DeFi", percentage: 80, color: "#fff", label: "DeFi" }],
-};
+});
 
 let mockStoreResult: typeof MOCK_RESULT | null = { ...MOCK_RESULT };
 
@@ -197,7 +199,15 @@ describe("ArchetypeReveal streamed persona cleanup", () => {
     const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
     // personaDescription is empty → should use getArchetypeDescription fallback
-    mockStoreResult = { ...MOCK_RESULT, personaDescription: "" };
+    mockStoreResult = createWrappedResult({
+      username: "testuser",
+      persona: "The Wizard",
+      personaDescription: "",
+      totalTransactions: 42,
+      percentile: 95,
+      dapps: [{ name: "StellarX", interactions: 10 }],
+      vibes: [{ type: "DeFi", percentage: 80, color: "#fff", label: "DeFi" }],
+    });
 
     await act(async () => {
       render(<ArchetypeReveal />);

@@ -28,7 +28,7 @@ import {
   stroopsToXlm,
   xlmToStroops,
   DEFAULT_BASE_FEE_STROOPS,
-} from '../utils/stellarAmounts';
+} from '../utils/stellarAmount';
 import { horizonQueue } from '../utils/horizonRequestQueue';
 import { getHorizonServer } from '../../app/utils/stellarClient';
 

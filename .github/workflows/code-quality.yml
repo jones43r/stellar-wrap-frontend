@@ -50,7 +50,7 @@ jobs:
       # --max-warnings 0 promotes every warning to a failure so no lint issues
       # can silently accumulate in the codebase.
       - name: Run ESLint
-        run: pnpm lint -- --max-warnings 0
+        run: pnpm lint --max-warnings 0
 
       # ── Prettier ────────────────────────────────────────────────────────────
       # Verifies every tracked file matches the project's Prettier formatting
@@ -65,6 +65,14 @@ jobs:
       # inference failures, strict null checks).
       - name: Run TypeScript type check
         run: pnpm typecheck
+
+      # ── Unit tests ──────────────────────────────────────────────────────────
+      # Runs the full unit test suite on every pull request.  `pnpm test`
+      # executes both halves of the suite (the two test scripts defined in
+      # package.json), so a failure in either half fails this required check
+      # and blocks the PR from merging.
+      - name: Run unit tests
+        run: pnpm test
 
       # ── ESLint SARIF annotations ─────────────────────────────────────────────
       # Re-run ESLint with SARIF output so findings appear inline on the PR

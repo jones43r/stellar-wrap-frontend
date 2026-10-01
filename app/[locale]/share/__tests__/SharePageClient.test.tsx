@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import SharePageClient from "../SharePageClient";
+import { createWrappedResult } from "@/app/api/wrapped/__tests__/fixtures/wrappedResult";
 
 // Mock the dependencies
 jest.mock("next/navigation", () => ({
@@ -34,12 +35,12 @@ jest.mock("../store/wrapStore", () => ({
     address: "test-address",
     network: "mainnet",
     period: mockPeriod,
-    result: {
+    result: createWrappedResult({
       username: "testuser",
       totalTransactions: 100,
       persona: "Explorer",
       vibes: [{ label: "Curious", percentage: 85 }],
-    },
+    }),
   }),
   __setMockPeriod: (period: string) => {
     mockPeriod = period;

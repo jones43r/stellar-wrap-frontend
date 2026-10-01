@@ -619,3 +619,9 @@ feat(store): consolidate state into wrapStore
 
 BREAKING CHANGE: legacy store exports removed; update imports to useWrapStore.
 ```
+
+## Handsoff notes
+
+- <!-- handsoff-issue-270 --> #270: feat(persona): prevent repeated confetti bursts on rapid card taps
+- <!-- handsoff-issue-412 --> #412: Implement keyboard navigation for Token Swap
+- <!-- handsoff-issue-604 --> #604: test(utils): `app/utils` has partial test coverage with no stated standard
